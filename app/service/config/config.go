@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"strings"
+	"sync"
 )
 
 const (
@@ -11,7 +12,8 @@ const (
 	EtcdEnvironment = "/services/arcane/config/environment"
 )
 
-type ConfigService struct {
+type Service struct {
+	sync.Mutex
 	Environment EnvironmentConfig
 	Nats        NatsConfig
 	Database    DatabaseConfig

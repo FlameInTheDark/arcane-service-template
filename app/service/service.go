@@ -2,6 +2,9 @@ package service
 
 import (
 	"fmt"
+	"io"
+	"os"
+
 	"github.com/FlameInTheDark/arcane-service-template/app/service/config"
 	"github.com/FlameInTheDark/arcane-service-template/app/service/database"
 	"github.com/FlameInTheDark/arcane-service-template/app/service/discord"
@@ -9,8 +12,6 @@ import (
 	"github.com/FlameInTheDark/arcane-service-template/app/service/nats"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"io"
-	"os"
 )
 
 const (
@@ -30,17 +31,14 @@ type Service struct {
 	Database *database.DatabaseService
 	Discord  *discord.DiscordService
 	Nats     *nats.NatsService
-	Config   *config.ConfigService
+	Config   *config.Service
 }
 
 func New(endpoints []string, username, password string) (*Service, error) {
-	logger, err := makeLogger()
-	if err != nil {
-		return nil, err
-	}
+	logger := makeLogger()
 
 	var service Service
-
+	service.Logger = logger
 	etcdService, err := etcd.New(endpoints, username, password)
 	if err != nil {
 		logger.Error(err.Error(), zapModule)
@@ -48,22 +46,28 @@ func New(endpoints []string, username, password string) (*Service, error) {
 	}
 
 	service.Etcd = etcdService
-	service.Config = &config.ConfigService{}
+	service.Config = &config.Service{}
 
-	err = service.LoadConfig()
+	err = service.loadConfig()
 	if err != nil {
 		return nil, err
 	}
 
-	err = service.Init()
+	err = service.init()
 	if err != nil {
 		return nil, err
 	}
 
+	err = service.registerConfigWatchers()
+	if err != nil {
+		service.Logger.Error(err.Error(), zapModule)
+		return nil, err
+	}
+	service.Logger.Info("Application started", zap.String("action", "launch"))
 	return &service, nil
 }
 
-func (s *Service) LoadConfig() error {
+func (s *Service) loadConfig() error {
 	err := s.Etcd.GetOneJSON(config.EtcdEnvironment, &s.Config.Environment)
 	err = s.Etcd.GetOneJSON(config.EtcdDatabase, &s.Config.Database)
 	err = s.Etcd.GetOneJSON(config.EtcdNats, &s.Config.Nats)
@@ -74,16 +78,16 @@ func (s *Service) LoadConfig() error {
 	return nil
 }
 
-func (s *Service) Init() error {
+func (s *Service) init() error {
 	databaseService, err := database.New(s.Config.Database.GenerateConnString(), s.Config.Environment.Database)
 	if err != nil {
 		s.Logger.Error(err.Error(), zapModule)
 		return fmt.Errorf("init database service error: %s", err)
 	}
 
-	lg := makeDBLogger(databaseService.MakeWriter(logCollection))
-	s.Logger = lg.With(zapApplication)
-	s.Etcd.SetLogger(lg)
+	logger := makeDBLogger(databaseService.MakeWriter(logCollection))
+	s.Logger = logger.With(zapApplication)
+	s.Etcd.SetLogger(logger)
 
 	discordService, err := discord.New(s.Config.Environment.Discord, s.Logger)
 	if err != nil {
@@ -104,6 +108,7 @@ func (s *Service) Init() error {
 }
 
 func (s *Service) Close() {
+	s.Logger.Info("Shutting down application", zap.String("action", "shutdown"))
 	s.Etcd.Close()
 	s.Nats.Close()
 	s.Discord.Close()
@@ -111,26 +116,22 @@ func (s *Service) Close() {
 	s.Logger.Sync()
 }
 
-func makeLogger() (*zap.Logger, error) {
-	cfg := zap.Config{
-		Encoding:         "json",
-		Level:            zap.NewAtomicLevelAt(zapcore.DebugLevel),
-		OutputPaths:      []string{"stderr"},
-		ErrorOutputPaths: []string{"stderr"},
-		EncoderConfig: zapcore.EncoderConfig{
-			MessageKey: "message",
+func makeLogger() *zap.Logger {
+	cfg := zapcore.EncoderConfig{
+		MessageKey: "message",
 
-			LevelKey:    "level",
-			EncodeLevel: zapcore.LowercaseLevelEncoder,
+		LevelKey:    "level",
+		EncodeLevel: zapcore.LowercaseLevelEncoder,
 
-			TimeKey:    "time",
-			EncodeTime: zapcore.ISO8601TimeEncoder,
+		TimeKey:    "time",
+		EncodeTime: zapcore.ISO8601TimeEncoder,
 
-			CallerKey:    "caller",
-			EncodeCaller: zapcore.ShortCallerEncoder,
-		},
+		CallerKey:    "caller",
+		EncodeCaller: zapcore.ShortCallerEncoder,
 	}
-	return cfg.Build()
+
+	logger := zap.New(zapcore.NewCore(zapcore.NewJSONEncoder(cfg), zapcore.NewMultiWriteSyncer(zapcore.AddSync(os.Stderr)), zapcore.DebugLevel))
+	return logger
 }
 
 //TODO: https://stackoverflow.com/questions/40396499/go-create-io-writer-inteface-for-logging-to-mongodb-database

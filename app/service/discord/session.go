@@ -2,6 +2,7 @@ package discord
 
 import (
 	"fmt"
+
 	"github.com/bwmarrin/discordgo"
 	"go.uber.org/zap"
 )
@@ -19,6 +20,10 @@ func New(token string, log *zap.Logger) (*DiscordService, error) {
 	sess, err := discordgo.New("Bot " + token)
 	if err != nil {
 		return nil, fmt.Errorf("error while try to create session: %s", err)
+	}
+	err = sess.Open()
+	if err != nil {
+		return nil, err
 	}
 	return &DiscordService{
 		session: sess,

@@ -2,9 +2,10 @@ package database
 
 import (
 	"encoding/json"
+	"io"
+
 	"github.com/globalsign/mgo"
 	"go.uber.org/zap"
-	"io"
 )
 
 const (
@@ -63,4 +64,8 @@ func (s *DatabaseService) MakeWriter(collection string) io.Writer {
 		database:   s.database,
 		collection: collection,
 	}
+}
+
+func (s *DatabaseService) SetDatabase(database string) {
+	s.database = database
 }

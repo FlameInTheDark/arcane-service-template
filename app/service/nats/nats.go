@@ -10,8 +10,11 @@ var (
 )
 
 type NatsService struct {
-	conn   *nats.Conn
-	econn  *nats.EncodedConn
+	conn  *nats.Conn
+	econn *nats.EncodedConn
+
+	subscriptions []*nats.Subscription
+
 	logger *zap.Logger
 }
 
@@ -34,7 +37,35 @@ func New(endpoints string, log *zap.Logger) (*NatsService, error) {
 	}, nil
 }
 
+// Close unsubscribes all subscriptions and close connection
 func (n *NatsService) Close() {
+	for _, v := range n.subscriptions {
+		if v != nil {
+			err := v.Unsubscribe()
+			if err != nil {
+				n.logger.Warn(err.Error(), zap.String("nats-subject", v.Subject), zap.String("nats-queue", v.Queue))
+			}
+		}
+	}
 	n.econn.Close()
 	n.conn.Close()
+}
+
+func (n *NatsService) SubscribeQueue(subject, queue string, handler nats.Handler) error {
+	sub, err := n.econn.QueueSubscribe(subject, queue, handler)
+	if err != nil {
+		n.logger.Warn(err.Error(), zap.String("nats-subject", subject), zap.String("nats-queue", queue))
+		return err
+	}
+	n.subscriptions = append(n.subscriptions, sub)
+	return nil
+}
+
+func (n *NatsService) Publish(subject string, v interface{}) error {
+	err := n.econn.Publish(subject, v)
+	if err != nil {
+		n.logger.Warn(err.Error(), zap.String("nats-subject", subject))
+		return err
+	}
+	return nil
 }

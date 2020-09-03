@@ -3,9 +3,10 @@ package app
 import (
 	"errors"
 	"fmt"
-	"github.com/FlameInTheDark/arcane-service-template/app/service"
 	"os"
 	"strings"
+
+	"github.com/FlameInTheDark/arcane-service-template/app/service"
 )
 
 var (
@@ -21,11 +22,11 @@ type Application struct {
 func New() (*Application, error) {
 	err := checkEnvironment()
 	if err != nil {
-		return nil, fmt.Errorf("[Application] starting application error: %s", err)
+		return nil, fmt.Errorf("starting application error: %s", err)
 	}
 	newService, err := service.New(parseEndpoints(), etcdUsername, etcdPassword)
 	if err != nil {
-		return nil, fmt.Errorf("[Application] creating service error: %s", err)
+		return nil, fmt.Errorf("creating service error: %s", err)
 	}
 	return &Application{Service: newService}, nil
 }

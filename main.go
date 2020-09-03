@@ -1,21 +1,31 @@
 package main
 
 import (
-	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
+
 	"github.com/FlameInTheDark/arcane-service-template/app"
 )
 
 func main() {
 	application, err := app.New()
 	if err != nil {
-		fmt.Println(err)
 		return
 	}
-	user, err := application.Service.Discord.GetMyUsername()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	application.Service.Logger.Info(user)
-	application.Service.Close()
+
+	go gracefulShutdown(application.Service.Close)
+	lock := make(chan struct{})
+	<-lock
+}
+
+func gracefulShutdown(close func()) {
+	s := make(chan os.Signal, 1)
+	signal.Notify(s, os.Interrupt)
+	signal.Notify(s, syscall.SIGTERM)
+	go func() {
+		<-s
+		close()
+		os.Exit(0)
+	}()
 }
