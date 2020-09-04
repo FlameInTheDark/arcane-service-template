@@ -2,6 +2,7 @@ package service
 
 import (
 	"encoding/json"
+	"github.com/FlameInTheDark/arcane-service-template/app/service/log"
 
 	"github.com/FlameInTheDark/arcane-service-template/app/service/config"
 	"github.com/FlameInTheDark/arcane-service-template/app/service/database"
@@ -63,7 +64,7 @@ func (s *Service) registerConfigWatchers() error {
 		endpoints := s.Config.Database.GenerateConnString()
 		databaseService, err := database.New(endpoints, s.Config.Environment.Database)
 		if err != nil {
-			s.Logger = makeLogger()
+			s.Logger = log.MakeLogger()
 			s.Logger.Error(
 				err.Error(),
 				zapModule,

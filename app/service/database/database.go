@@ -38,13 +38,13 @@ func (s *DatabaseService) Close() {
 	s.session.Close()
 }
 
-type DatabaseWriter struct {
+type DBWriter struct {
 	sess       *mgo.Session
 	database   string
 	collection string
 }
 
-func (dw DatabaseWriter) Write(p []byte) (n int, err error) {
+func (dw DBWriter) Write(p []byte) (n int, err error) {
 	var m map[string]interface{}
 	err = json.Unmarshal(p, &m)
 	if err != nil {
@@ -59,7 +59,7 @@ func (dw DatabaseWriter) Write(p []byte) (n int, err error) {
 }
 
 func (s *DatabaseService) MakeWriter(collection string) io.Writer {
-	return DatabaseWriter{
+	return DBWriter{
 		sess:       s.session,
 		database:   s.database,
 		collection: collection,

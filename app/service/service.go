@@ -2,8 +2,7 @@ package service
 
 import (
 	"fmt"
-	"io"
-	"os"
+	"github.com/FlameInTheDark/arcane-service-template/app/service/log"
 
 	"github.com/FlameInTheDark/arcane-service-template/app/service/config"
 	"github.com/FlameInTheDark/arcane-service-template/app/service/database"
@@ -11,7 +10,6 @@ import (
 	"github.com/FlameInTheDark/arcane-service-template/app/service/etcd"
 	"github.com/FlameInTheDark/arcane-service-template/app/service/nats"
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
 const (
@@ -35,7 +33,7 @@ type Service struct {
 }
 
 func New(endpoints []string, username, password string) (*Service, error) {
-	logger := makeLogger()
+	logger := log.MakeLogger()
 
 	var service Service
 	service.Logger = logger
@@ -85,7 +83,7 @@ func (s *Service) init() error {
 		return fmt.Errorf("init database service error: %s", err)
 	}
 
-	logger := makeDBLogger(databaseService.MakeWriter(logCollection))
+	logger := log.MakeLoggerWriter(databaseService.MakeWriter(logCollection))
 	s.Logger = logger.With(zapApplication)
 	s.Etcd.SetLogger(logger)
 
@@ -114,41 +112,4 @@ func (s *Service) Close() {
 	s.Discord.Close()
 	s.Database.Close()
 	s.Logger.Sync()
-}
-
-func makeLogger() *zap.Logger {
-	cfg := zapcore.EncoderConfig{
-		MessageKey: "message",
-
-		LevelKey:    "level",
-		EncodeLevel: zapcore.LowercaseLevelEncoder,
-
-		TimeKey:    "time",
-		EncodeTime: zapcore.ISO8601TimeEncoder,
-
-		CallerKey:    "caller",
-		EncodeCaller: zapcore.ShortCallerEncoder,
-	}
-
-	logger := zap.New(zapcore.NewCore(zapcore.NewJSONEncoder(cfg), zapcore.NewMultiWriteSyncer(zapcore.AddSync(os.Stderr)), zapcore.DebugLevel))
-	return logger
-}
-
-//TODO: https://stackoverflow.com/questions/40396499/go-create-io-writer-inteface-for-logging-to-mongodb-database
-func makeDBLogger(mw io.Writer) *zap.Logger {
-	cfg := zapcore.EncoderConfig{
-		MessageKey: "message",
-
-		LevelKey:    "level",
-		EncodeLevel: zapcore.LowercaseLevelEncoder,
-
-		TimeKey:    "time",
-		EncodeTime: zapcore.ISO8601TimeEncoder,
-
-		CallerKey:    "caller",
-		EncodeCaller: zapcore.ShortCallerEncoder,
-	}
-
-	logger := zap.New(zapcore.NewCore(zapcore.NewJSONEncoder(cfg), zapcore.NewMultiWriteSyncer(zapcore.AddSync(os.Stderr), zapcore.AddSync(mw)), zapcore.DebugLevel))
-	return logger
 }

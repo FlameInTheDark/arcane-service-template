@@ -37,7 +37,6 @@ func New(endpoints []string, username, password string) (*EtcdService, error) {
 	if err != nil {
 		return nil, fmt.Errorf("creating etcd session error: %s", err)
 	}
-
 	return &EtcdService{session: cli, watcher: NewWatcherService()}, nil
 }
 

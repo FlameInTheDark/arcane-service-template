@@ -1,50 +1,25 @@
 package app
 
 import (
-	"errors"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/FlameInTheDark/arcane-service-template/app/service"
-)
-
-var (
-	etcdEndpoints = os.Getenv("ETCD_ENDPOINTS")
-	etcdUsername  = os.Getenv("ETCD_USERNAME")
-	etcdPassword  = os.Getenv("ETCD_PASSWORD")
 )
 
 type Application struct {
 	Service *service.Service
 }
 
-func New() (*Application, error) {
-	err := checkEnvironment()
-	if err != nil {
-		return nil, fmt.Errorf("starting application error: %s", err)
-	}
-	newService, err := service.New(parseEndpoints(), etcdUsername, etcdPassword)
+func New(endpoints, username, password string) (*Application, error) {
+	newService, err := service.New(parseEndpoints(endpoints), username, password)
 	if err != nil {
 		return nil, fmt.Errorf("creating service error: %s", err)
 	}
 	return &Application{Service: newService}, nil
 }
 
-func checkEnvironment() error {
-	if etcdEndpoints == "" {
-		return errors.New("etcd endpoints not set")
-	}
-	if etcdUsername == "" {
-		return errors.New("etcd username not set")
-	}
-	if etcdPassword == "" {
-		return errors.New("etcd password not set")
-	}
-	return nil
-}
-
-func parseEndpoints() []string {
-	trim := strings.ReplaceAll(etcdEndpoints, " ", "")
+func parseEndpoints(raw string) []string {
+	trim := strings.ReplaceAll(raw, " ", "")
 	return strings.Split(trim, ",")
 }
