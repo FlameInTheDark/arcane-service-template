@@ -2,13 +2,13 @@ package service
 
 import (
 	"fmt"
-	"github.com/FlameInTheDark/arcane-service-template/app/service/metrics"
 
 	"github.com/FlameInTheDark/arcane-service-template/app/service/config"
 	"github.com/FlameInTheDark/arcane-service-template/app/service/database"
 	"github.com/FlameInTheDark/arcane-service-template/app/service/discord"
 	"github.com/FlameInTheDark/arcane-service-template/app/service/etcd"
 	"github.com/FlameInTheDark/arcane-service-template/app/service/log"
+	"github.com/FlameInTheDark/arcane-service-template/app/service/metrics"
 	"github.com/FlameInTheDark/arcane-service-template/app/service/nats"
 	"go.uber.org/zap"
 )
