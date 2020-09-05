@@ -11,6 +11,7 @@ require (
 	github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8
 	github.com/gogo/protobuf v1.3.1 // indirect
 	github.com/google/uuid v1.1.2 // indirect
+	github.com/influxdata/influxdb-client-go v1.4.0
 	github.com/nats-io/nats.go v1.10.0
 	go.etcd.io/etcd v3.3.25+incompatible
 	go.uber.org/zap v1.15.0

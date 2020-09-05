@@ -46,3 +46,7 @@ func (d *DiscordService) Close() {
 		d.logger.Warn(err.Error())
 	}
 }
+
+func (d *DiscordService) SetLogger(logger *zap.Logger) {
+	d.logger = logger.With(zapModule)
+}

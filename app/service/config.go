@@ -72,7 +72,9 @@ func (s *Service) registerConfigWatchers() error {
 				zap.String("etcd-key", config.EtcdDatabase))
 			return
 		}
+
 		databaseService.SetLogger(s.Logger)
+
 		s.Database = databaseService
 		s.Logger.Info("Settings updated successfully", zap.String("etcd-key", config.EtcdDatabase))
 	})

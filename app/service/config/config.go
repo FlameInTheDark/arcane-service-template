@@ -10,6 +10,7 @@ const (
 	EtcdDatabase    = "/services/arcane/config/database"
 	EtcdNats        = "/conf/nats/endpoints"
 	EtcdEnvironment = "/services/arcane/config/environment"
+	EtcdMetrics     = "/services/arcane/config/metrics"
 )
 
 type Service struct {
@@ -17,6 +18,7 @@ type Service struct {
 	Environment EnvironmentConfig
 	Nats        NatsConfig
 	Database    DatabaseConfig
+	Metrics     MetricsConfig
 }
 
 type EnvironmentConfig struct {
@@ -40,6 +42,13 @@ type DatabaseEndpoint struct {
 	User     string `json:"user"`
 	Password string `json:"password"`
 	Database string `json:"database"`
+}
+
+type MetricsConfig struct {
+	Endpoint string `json:"endpoint"`
+	Token    string `json:"token"`
+	Org      string `json:"org"`
+	Bucket   string `json:"bucket"`
 }
 
 func (n *NatsConfig) GenerateConnString() string {

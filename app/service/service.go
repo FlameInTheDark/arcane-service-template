@@ -2,12 +2,13 @@ package service
 
 import (
 	"fmt"
-	"github.com/FlameInTheDark/arcane-service-template/app/service/log"
+	"github.com/FlameInTheDark/arcane-service-template/app/service/metrics"
 
 	"github.com/FlameInTheDark/arcane-service-template/app/service/config"
 	"github.com/FlameInTheDark/arcane-service-template/app/service/database"
 	"github.com/FlameInTheDark/arcane-service-template/app/service/discord"
 	"github.com/FlameInTheDark/arcane-service-template/app/service/etcd"
+	"github.com/FlameInTheDark/arcane-service-template/app/service/log"
 	"github.com/FlameInTheDark/arcane-service-template/app/service/nats"
 	"go.uber.org/zap"
 )
@@ -29,6 +30,7 @@ type Service struct {
 	Database *database.DatabaseService
 	Discord  *discord.DiscordService
 	Nats     *nats.NatsService
+	Metrics  *metrics.MetricsService
 	Config   *config.Service
 }
 
@@ -42,7 +44,7 @@ func New(endpoints []string, username, password string) (*Service, error) {
 		logger.Error(err.Error(), zapModule)
 		return nil, fmt.Errorf("error creating etcd session: %s", err)
 	}
-
+	etcdService.SetLogger(logger)
 	service.Etcd = etcdService
 	service.Config = &config.Service{}
 
@@ -61,6 +63,7 @@ func New(endpoints []string, username, password string) (*Service, error) {
 		service.Logger.Error(err.Error(), zapModule)
 		return nil, err
 	}
+	service.Metrics.Startup(appName)
 	service.Logger.Info("Application started", zap.String("action", "launch"))
 	return &service, nil
 }
@@ -69,8 +72,8 @@ func (s *Service) loadConfig() error {
 	err := s.Etcd.GetOneJSON(config.EtcdEnvironment, &s.Config.Environment)
 	err = s.Etcd.GetOneJSON(config.EtcdDatabase, &s.Config.Database)
 	err = s.Etcd.GetOneJSON(config.EtcdNats, &s.Config.Nats)
+	err = s.Etcd.GetOneJSON(config.EtcdMetrics, &s.Config.Metrics)
 	if err != nil {
-		s.Logger.Warn(err.Error(), zapModule)
 		return fmt.Errorf("error load config: %s", err)
 	}
 	return nil
@@ -99,6 +102,9 @@ func (s *Service) init() error {
 		return fmt.Errorf("init nats service error: %s", err)
 	}
 
+	metricsService := metrics.New(s.Config.Metrics.Endpoint, s.Config.Metrics.Token, s.Config.Metrics.Org, s.Config.Metrics.Bucket)
+
+	s.Metrics = metricsService
 	s.Nats = natsService
 	s.Discord = discordService
 	s.Database = databaseService
@@ -111,5 +117,6 @@ func (s *Service) Close() {
 	s.Nats.Close()
 	s.Discord.Close()
 	s.Database.Close()
+	s.Metrics.Close()
 	s.Logger.Sync()
 }

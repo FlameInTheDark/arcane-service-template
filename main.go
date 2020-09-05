@@ -26,20 +26,11 @@ func main() {
 		return
 	}
 
-	go gracefulShutdown(application.Service.Close)
-	lock := make(chan struct{})
+	lock := make(chan os.Signal, 1)
+	signal.Notify(lock, os.Interrupt)
+	signal.Notify(lock, syscall.SIGTERM)
 	<-lock
-}
-
-func gracefulShutdown(close func()) {
-	s := make(chan os.Signal, 1)
-	signal.Notify(s, os.Interrupt)
-	signal.Notify(s, syscall.SIGTERM)
-	go func() {
-		<-s
-		close()
-		os.Exit(0)
-	}()
+	application.Service.Close()
 }
 
 func checkEnvironment() error {
