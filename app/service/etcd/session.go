@@ -21,13 +21,13 @@ var (
 
 type EtcdHandlerFunc func(key, value string, version int64)
 
-type EtcdService struct {
+type Service struct {
 	session *clientv3.Client
 	watcher *WatcherService
 	logger  *zap.Logger
 }
 
-func New(endpoints []string, username, password string) (*EtcdService, error) {
+func New(endpoints []string, username, password string) (*Service, error) {
 	cli, err := clientv3.New(clientv3.Config{
 		Endpoints:   endpoints,
 		Username:    username,
@@ -37,14 +37,14 @@ func New(endpoints []string, username, password string) (*EtcdService, error) {
 	if err != nil {
 		return nil, fmt.Errorf("creating etcd session error: %s", err)
 	}
-	return &EtcdService{session: cli, watcher: NewWatcherService()}, nil
+	return &Service{session: cli, watcher: NewWatcherService()}, nil
 }
 
-func (e *EtcdService) SetLogger(logger *zap.Logger) {
+func (e *Service) SetLogger(logger *zap.Logger) {
 	e.logger = logger.With(zapModule)
 }
 
-func (e *EtcdService) GetOneRaw(key string) ([]byte, error) {
+func (e *Service) GetOneRaw(key string) ([]byte, error) {
 	resp, err := e.session.Get(context.Background(), key)
 	if err != nil {
 		e.logger.Warn(err.Error())
@@ -58,7 +58,7 @@ func (e *EtcdService) GetOneRaw(key string) ([]byte, error) {
 	return resp.Kvs[0].Value, nil
 }
 
-func (e *EtcdService) GetAllRaw(key string) (map[string][]byte, error) {
+func (e *Service) GetAllRaw(key string) (map[string][]byte, error) {
 	resp, err := e.session.Get(context.Background(), key, clientv3.WithPrefix())
 	if err != nil {
 		e.logger.Warn(err.Error())
@@ -76,7 +76,7 @@ func (e *EtcdService) GetAllRaw(key string) (map[string][]byte, error) {
 	return data, nil
 }
 
-func (e *EtcdService) GetOneJSON(key string, v interface{}) error {
+func (e *Service) GetOneJSON(key string, v interface{}) error {
 	raw, err := e.GetOneRaw(key)
 	if err != nil {
 		return err
@@ -90,7 +90,7 @@ func (e *EtcdService) GetOneJSON(key string, v interface{}) error {
 	return nil
 }
 
-func (e *EtcdService) AddWatcher(key string, handler EtcdHandlerFunc) error {
+func (e *Service) AddWatcher(key string, handler EtcdHandlerFunc) error {
 	wc := e.session.Watch(context.Background(), key)
 	closeChan := make(chan interface{})
 
@@ -117,11 +117,11 @@ func (e *EtcdService) AddWatcher(key string, handler EtcdHandlerFunc) error {
 	return nil
 }
 
-func (e *EtcdService) RemoveWatcher(key string) {
+func (e *Service) RemoveWatcher(key string) {
 	e.watcher.RemoveWatcher(key)
 }
 
-func (e *EtcdService) Close() {
+func (e *Service) Close() {
 	err := e.session.Close()
 	if err != nil {
 		e.logger.Warn(err.Error())

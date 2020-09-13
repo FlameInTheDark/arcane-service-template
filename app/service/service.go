@@ -26,11 +26,11 @@ var (
 
 type Service struct {
 	Logger   *zap.Logger
-	Etcd     *etcd.EtcdService
-	Database *database.DatabaseService
-	Discord  *discord.DiscordService
-	Nats     *nats.NatsService
-	Metrics  *metrics.MetricsService
+	Etcd     *etcd.Service
+	Database *database.Service
+	Discord  *discord.Service
+	Nats     *nats.Service
+	Metrics  *metrics.Service
 	Config   *config.Service
 }
 
@@ -85,10 +85,13 @@ func (s *Service) init() error {
 		s.Logger.Error(err.Error(), zapModule)
 		return fmt.Errorf("init database service error: %s", err)
 	}
+	metricsService := metrics.New(s.Config.Metrics.Endpoint, s.Config.Metrics.Token, s.Config.Metrics.Org, s.Config.Metrics.Bucket)
 
-	logger := log.MakeLoggerWriter(databaseService.MakeWriter(logCollection))
+	logger := log.MakeLoggerWriter(databaseService.MakeWriter(logCollection), metricsService.MakeWriter())
 	s.Logger = logger.With(zapApplication)
+
 	s.Etcd.SetLogger(logger)
+	databaseService.SetLogger(s.Logger)
 
 	discordService, err := discord.New(s.Config.Environment.Discord, s.Logger)
 	if err != nil {
@@ -102,8 +105,6 @@ func (s *Service) init() error {
 		return fmt.Errorf("init nats service error: %s", err)
 	}
 
-	metricsService := metrics.New(s.Config.Metrics.Endpoint, s.Config.Metrics.Token, s.Config.Metrics.Org, s.Config.Metrics.Bucket)
-
 	s.Metrics = metricsService
 	s.Nats = natsService
 	s.Discord = discordService
@@ -112,7 +113,7 @@ func (s *Service) init() error {
 }
 
 func (s *Service) Close() {
-	s.Logger.Info("Shutting down application", zap.String("action", "shutdown"))
+	s.Logger.Info("Shutting down the application", zap.String("action", "shutdown"))
 	s.Etcd.Close()
 	s.Nats.Close()
 	s.Discord.Close()

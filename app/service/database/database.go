@@ -16,25 +16,25 @@ var (
 	zapModule = zap.String("module", moduleName)
 )
 
-type DatabaseService struct {
+type Service struct {
 	session  *mgo.Session
 	database string
 	logger   *zap.Logger
 }
 
-func New(conn, database string) (*DatabaseService, error) {
+func New(conn, database string) (*Service, error) {
 	sess, err := mgo.Dial(conn)
 	if err != nil {
 		return nil, err
 	}
-	return &DatabaseService{session: sess, database: database}, nil
+	return &Service{session: sess, database: database}, nil
 }
 
-func (s *DatabaseService) SetLogger(logger *zap.Logger) {
+func (s *Service) SetLogger(logger *zap.Logger) {
 	s.logger = logger.With(zapModule)
 }
 
-func (s *DatabaseService) Close() {
+func (s *Service) Close() {
 	s.session.Close()
 }
 
@@ -58,7 +58,7 @@ func (dw DBWriter) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
-func (s *DatabaseService) MakeWriter(collection string) io.Writer {
+func (s *Service) MakeWriter(collection string) io.Writer {
 	return DBWriter{
 		sess:       s.session,
 		database:   s.database,
@@ -66,6 +66,10 @@ func (s *DatabaseService) MakeWriter(collection string) io.Writer {
 	}
 }
 
-func (s *DatabaseService) SetDatabase(database string) {
+func (s *Service) SetDatabase(database string) {
 	s.database = database
+}
+
+func (s *Service) db() *mgo.Database {
+	return s.session.DB(s.database)
 }

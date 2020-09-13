@@ -26,6 +26,9 @@ func main() {
 		return
 	}
 
+	application.Controller.Init()
+	application.Controller.RegisterWorkers()
+
 	lock := make(chan os.Signal, 1)
 	signal.Notify(lock, os.Interrupt)
 	signal.Notify(lock, syscall.SIGTERM)

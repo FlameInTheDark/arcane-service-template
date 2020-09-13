@@ -2,13 +2,15 @@ package app
 
 import (
 	"fmt"
+	"github.com/FlameInTheDark/arcane-service-template/app/controller"
 	"strings"
 
 	"github.com/FlameInTheDark/arcane-service-template/app/service"
 )
 
 type Application struct {
-	Service *service.Service
+	Service    *service.Service
+	Controller *controller.Worker
 }
 
 func New(endpoints, username, password string) (*Application, error) {
@@ -16,7 +18,7 @@ func New(endpoints, username, password string) (*Application, error) {
 	if err != nil {
 		return nil, fmt.Errorf("creating service error: %s", err)
 	}
-	return &Application{Service: newService}, nil
+	return &Application{Service: newService, Controller: controller.New(newService)}, nil
 }
 
 func parseEndpoints(raw string) []string {

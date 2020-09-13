@@ -5,20 +5,20 @@ import (
 	"github.com/influxdata/influxdb-client-go/api"
 )
 
-type MetricsService struct {
+type Service struct {
 	client influxdb2.Client
 	write  api.WriteAPI
 	bucket string
 	org    string
 }
 
-func New(endpoint, token, org, bucket string) *MetricsService {
+func New(endpoint, token, org, bucket string) *Service {
 	client := influxdb2.NewClient(endpoint, token)
 	writeApi := client.WriteAPI(org, bucket)
-	return &MetricsService{client: client, write: writeApi, org: org, bucket: bucket}
+	return &Service{client: client, write: writeApi, org: org, bucket: bucket}
 }
 
-func (m *MetricsService) Close() {
+func (m *Service) Close() {
 	m.write.Close()
 	m.client.Close()
 }

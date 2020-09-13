@@ -9,7 +9,7 @@ var (
 	zapModule = zap.String("module", "nats")
 )
 
-type NatsService struct {
+type Service struct {
 	conn  *nats.Conn
 	econn *nats.EncodedConn
 
@@ -18,7 +18,7 @@ type NatsService struct {
 	logger *zap.Logger
 }
 
-func New(endpoints string, log *zap.Logger) (*NatsService, error) {
+func New(endpoints string, log *zap.Logger) (*Service, error) {
 	natsLogger := log.With(zapModule)
 	conn, err := nats.Connect(endpoints)
 	if err != nil {
@@ -30,7 +30,7 @@ func New(endpoints string, log *zap.Logger) (*NatsService, error) {
 		return nil, err
 	}
 
-	return &NatsService{
+	return &Service{
 		conn:   conn,
 		econn:  econn,
 		logger: natsLogger,
@@ -38,7 +38,7 @@ func New(endpoints string, log *zap.Logger) (*NatsService, error) {
 }
 
 // Close unsubscribes all subscriptions and close connection
-func (n *NatsService) Close() {
+func (n *Service) Close() {
 	for _, v := range n.subscriptions {
 		if v != nil {
 			err := v.Unsubscribe()
@@ -51,7 +51,7 @@ func (n *NatsService) Close() {
 	n.conn.Close()
 }
 
-func (n *NatsService) SubscribeQueue(subject, queue string, handler nats.Handler) error {
+func (n *Service) SubscribeQueue(subject, queue string, handler nats.Handler) error {
 	sub, err := n.econn.QueueSubscribe(subject, queue, handler)
 	if err != nil {
 		n.logger.Warn(err.Error(), zap.String("nats-subject", subject), zap.String("nats-queue", queue))
@@ -61,10 +61,20 @@ func (n *NatsService) SubscribeQueue(subject, queue string, handler nats.Handler
 	return nil
 }
 
-func (n *NatsService) Publish(subject string, v interface{}) error {
-	err := n.econn.Publish(subject, v)
+func (n *Service) Subscribe(subject string, handler nats.Handler) error {
+	sub, err := n.econn.Subscribe(subject, handler)
 	if err != nil {
 		n.logger.Warn(err.Error(), zap.String("nats-subject", subject))
+		return err
+	}
+	n.subscriptions = append(n.subscriptions, sub)
+	return nil
+}
+
+func (n *Service) Publish(subject string, v interface{}) error {
+	err := n.econn.Publish(subject, v)
+	if err != nil {
+		n.logger.Warn(err.Error(), zap.String("nats-subject", subject), zap.Reflect("nats-value", v))
 		return err
 	}
 	return nil
