@@ -14,3 +14,8 @@ func (m *Service) Startup(app string) {
 	p := influxdb2.NewPointWithMeasurement("startup").AddField("application", app).SetTime(time.Now())
 	m.write.WritePoint(p)
 }
+
+func (m *Service) Command(id, guild string) {
+	p := influxdb2.NewPointWithMeasurement("command").AddField("id", id).AddField("guild", guild).SetTime(time.Now())
+	m.write.WritePoint(p)
+}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	model "github.com/FlameInTheDark/arcane-service-template/app/model/database"
 	natsModel "github.com/FlameInTheDark/arcane-service-template/app/model/nats"
+	"github.com/FlameInTheDark/arcane-service-template/app/service/discord"
 )
 
 func (w *Worker) pingCommand() {
@@ -17,7 +18,16 @@ func (w *Worker) pingCommand() {
 			accepted = cmd.Active
 		}
 		if accepted {
-			_ = w.service.Discord.SendMessage(c.ChannelID, fmt.Sprintf("<@%s> Help message!", c.UserID))
+			msg := discord.NewEmbed("").
+				Field("Help", "Help message!", false).
+				Footer(fmt.Sprintf("Requested by %s", c.Username)).
+				Color(0x00ff00).
+				GetMessageSend()
+
+			err := w.service.Discord.SendComplex(c.ChannelID, msg)
+			if err == nil {
+				w.service.Metrics.Command(command, c.GuildID)
+			}
 		}
 	})
 }
