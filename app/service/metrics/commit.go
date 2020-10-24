@@ -5,17 +5,23 @@ import (
 	"time"
 )
 
-func (m *Service) NatsMessage(subject string) {
+func (s *Service) NatsMessage(subject string) {
+	s.RLock()
+	defer s.RUnlock()
 	p := influxdb2.NewPointWithMeasurement("nats").AddField("subject", subject).SetTime(time.Now())
-	m.write.WritePoint(p)
+	s.write.WritePoint(p)
 }
 
-func (m *Service) Startup(app string) {
+func (s *Service) Startup(app string) {
+	s.RLock()
+	defer s.RUnlock()
 	p := influxdb2.NewPointWithMeasurement("startup").AddField("application", app).SetTime(time.Now())
-	m.write.WritePoint(p)
+	s.write.WritePoint(p)
 }
 
-func (m *Service) Command(id, guild string) {
+func (s *Service) Command(id, guild string) {
+	s.RLock()
+	defer s.RUnlock()
 	p := influxdb2.NewPointWithMeasurement("command").AddField("id", id).AddField("guild", guild).SetTime(time.Now())
-	m.write.WritePoint(p)
+	s.write.WritePoint(p)
 }

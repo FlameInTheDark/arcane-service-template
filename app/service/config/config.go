@@ -11,6 +11,7 @@ const (
 	EtcdNats        = "/conf/nats/endpoints"
 	EtcdEnvironment = "/services/arcane/config/environment"
 	EtcdMetrics     = "/services/arcane/config/metrics"
+	EtcdDiscord     = "/service/arcane/config/discord"
 )
 
 type Service struct {
@@ -19,11 +20,21 @@ type Service struct {
 	Nats        NatsConfig
 	Database    DatabaseConfig
 	Metrics     MetricsConfig
+	Discord     DiscordConfig
 }
 
 type EnvironmentConfig struct {
 	Discord  string `json:"discord"`
 	Database string `json:"database"`
+}
+
+type DiscordConfig struct {
+	Token         string `json:"token"`
+	OAuthClientID string `json:"oauth_client_id"`
+	OAuthSecret   string `json:"oauth_secret"`
+	OAuthScope    string `json:"oauth_scope"`
+	OAuthRedirect string `json:"oauth_redirect"`
+	InviteURL     string `json:"invite"`
 }
 
 type NatsConfig []NatsEndpoint

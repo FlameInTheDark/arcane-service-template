@@ -2,12 +2,13 @@ package controller
 
 import (
 	"fmt"
+
 	model "github.com/FlameInTheDark/arcane-service-template/app/model/database"
 	natsModel "github.com/FlameInTheDark/arcane-service-template/app/model/nats"
 	"github.com/FlameInTheDark/arcane-service-template/app/service/discord"
 )
 
-func (w *Worker) pingCommand() {
+func (w *Worker) helpCommand() {
 	_ = w.service.Nats.SubscribeQueue(natsWorker, "workers", func(c *natsModel.Command) {
 		var cmd model.GuildCommand
 		var accepted bool
@@ -23,10 +24,10 @@ func (w *Worker) pingCommand() {
 				Footer(fmt.Sprintf("Requested by %s", c.Username)).
 				Color(0x00ff00).
 				GetMessageSend()
-
 			err := w.service.Discord.SendComplex(c.ChannelID, msg)
 			if err == nil {
 				w.service.Metrics.Command(command, c.GuildID)
+				_ = w.service.Database.SetUsage(command, c.UserID, c.GuildID)
 			}
 		}
 	})

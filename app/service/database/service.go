@@ -2,10 +2,11 @@ package database
 
 import (
 	"encoding/json"
-	"io"
-
+	"errors"
 	"github.com/globalsign/mgo"
 	"go.uber.org/zap"
+	"io"
+	"sync"
 )
 
 const (
@@ -17,6 +18,7 @@ var (
 )
 
 type Service struct {
+	sync.RWMutex
 	session  *mgo.Session
 	database string
 	logger   *zap.Logger
@@ -39,18 +41,21 @@ func (s *Service) Close() {
 }
 
 type DBWriter struct {
-	sess       *mgo.Session
+	service    *Service
 	database   string
 	collection string
 }
 
 func (dw DBWriter) Write(p []byte) (n int, err error) {
+	if dw.service.session == nil {
+		return 0, errors.New("session is nil")
+	}
 	var m map[string]interface{}
 	err = json.Unmarshal(p, &m)
 	if err != nil {
 		return
 	}
-	c := dw.sess.DB(dw.database).C(dw.collection)
+	c := dw.service.session.DB(dw.database).C(dw.collection)
 	err = c.Insert(m)
 	if err != nil {
 		return
@@ -60,7 +65,7 @@ func (dw DBWriter) Write(p []byte) (n int, err error) {
 
 func (s *Service) MakeWriter(collection string) io.Writer {
 	return DBWriter{
-		sess:       s.session,
+		service:    s,
 		database:   s.database,
 		collection: collection,
 	}
@@ -71,5 +76,21 @@ func (s *Service) SetDatabase(database string) {
 }
 
 func (s *Service) db() *mgo.Database {
+	s.RLock()
+	defer s.RUnlock()
 	return s.session.DB(s.database)
+}
+
+func (s *Service) Reload(conn, database string) error {
+	s.Lock()
+	defer s.Unlock()
+	s.Close()
+	sess, err := mgo.Dial(conn)
+	if err != nil {
+		s.logger.Error(err.Error())
+		return err
+	}
+	s.session = sess
+	s.database = database
+	return nil
 }

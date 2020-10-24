@@ -3,6 +3,7 @@ package nats
 import (
 	"github.com/nats-io/nats.go"
 	"go.uber.org/zap"
+	"sync"
 )
 
 var (
@@ -10,6 +11,7 @@ var (
 )
 
 type Service struct {
+	sync.RWMutex
 	conn  *nats.Conn
 	econn *nats.EncodedConn
 
@@ -38,44 +40,64 @@ func New(endpoints string, log *zap.Logger) (*Service, error) {
 }
 
 // Close unsubscribes all subscriptions and close connection
-func (n *Service) Close() {
-	for _, v := range n.subscriptions {
+func (s *Service) Close() {
+	for _, v := range s.subscriptions {
 		if v != nil {
 			err := v.Unsubscribe()
 			if err != nil {
-				n.logger.Warn(err.Error(), zap.String("nats-subject", v.Subject), zap.String("nats-queue", v.Queue))
+				s.logger.Warn(err.Error(), zap.String("nats-subject", v.Subject), zap.String("nats-queue", v.Queue))
 			}
 		}
 	}
-	n.econn.Close()
-	n.conn.Close()
+	s.econn.Close()
+	s.conn.Close()
 }
 
-func (n *Service) SubscribeQueue(subject, queue string, handler nats.Handler) error {
-	sub, err := n.econn.QueueSubscribe(subject, queue, handler)
+func (s *Service) SubscribeQueue(subject, queue string, handler nats.Handler) error {
+	sub, err := s.econn.QueueSubscribe(subject, queue, handler)
 	if err != nil {
-		n.logger.Warn(err.Error(), zap.String("nats-subject", subject), zap.String("nats-queue", queue))
+		s.logger.Warn(err.Error(), zap.String("nats-subject", subject), zap.String("nats-queue", queue))
 		return err
 	}
-	n.subscriptions = append(n.subscriptions, sub)
+	s.subscriptions = append(s.subscriptions, sub)
 	return nil
 }
 
-func (n *Service) Subscribe(subject string, handler nats.Handler) error {
-	sub, err := n.econn.Subscribe(subject, handler)
+func (s *Service) Subscribe(subject string, handler nats.Handler) error {
+	sub, err := s.econn.Subscribe(subject, handler)
 	if err != nil {
-		n.logger.Warn(err.Error(), zap.String("nats-subject", subject))
+		s.logger.Warn(err.Error(), zap.String("nats-subject", subject))
 		return err
 	}
-	n.subscriptions = append(n.subscriptions, sub)
+	s.subscriptions = append(s.subscriptions, sub)
 	return nil
 }
 
-func (n *Service) Publish(subject string, v interface{}) error {
-	err := n.econn.Publish(subject, v)
+func (s *Service) Publish(subject string, v interface{}) error {
+	err := s.econn.Publish(subject, v)
 	if err != nil {
-		n.logger.Warn(err.Error(), zap.String("nats-subject", subject), zap.Reflect("nats-value", v))
+		s.logger.Warn(err.Error(), zap.String("nats-subject", subject), zap.Reflect("nats-value", v))
 		return err
 	}
+	return nil
+}
+
+func (s *Service) Reload(endpoints string) error {
+	s.Lock()
+	defer s.Unlock()
+	conn, err := nats.Connect(endpoints)
+	if err != nil {
+		s.logger.Error(err.Error())
+		return err
+	}
+
+	econn, err := nats.NewEncodedConn(conn, nats.JSON_ENCODER)
+	if err != nil {
+		s.logger.Error(err.Error())
+		return err
+	}
+	s.Close()
+	s.conn = conn
+	s.econn = econn
 	return nil
 }

@@ -23,7 +23,7 @@ func (w *Worker) RegisterWorkers() {
 	w.pingWorker()
 	w.commandPingWorker()
 
-	w.pingCommand()
+	w.helpCommand()
 }
 
 func (w *Worker) pingWorker() {

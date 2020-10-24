@@ -2,7 +2,6 @@ package service
 
 import (
 	"fmt"
-
 	"github.com/FlameInTheDark/arcane-service-template/app/service/config"
 	"github.com/FlameInTheDark/arcane-service-template/app/service/database"
 	"github.com/FlameInTheDark/arcane-service-template/app/service/discord"
