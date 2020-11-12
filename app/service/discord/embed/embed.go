@@ -1,4 +1,4 @@
-package discord
+package embed
 
 import (
 	"io"
@@ -27,10 +27,7 @@ func NewEmbed(title string) *NewEmbedStruct {
 
 // CheckLength returns true if length of embed chars less then 6000
 func (emb *NewEmbedStruct) checkLength(newLength int) bool {
-	if emb.embLength+newLength <= 6000 {
-		return true
-	}
-	return false
+	return emb.embLength+newLength <= 6000
 }
 
 // Field adds field to embed

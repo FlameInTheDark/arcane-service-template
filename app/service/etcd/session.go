@@ -19,8 +19,6 @@ var (
 	zapModule = zap.String("module", "etcd")
 )
 
-type EtcdHandlerFunc func(key, value string, version int64)
-
 type Service struct {
 	session *clientv3.Client
 	watcher *WatcherService
@@ -90,7 +88,7 @@ func (e *Service) GetOneJSON(key string, v interface{}) error {
 	return nil
 }
 
-func (e *Service) AddWatcher(key string, handler EtcdHandlerFunc) error {
+func (e *Service) AddWatcher(key string, handler func(key, value string, version int64)) error {
 	wc := e.session.Watch(context.Background(), key)
 	closeChan := make(chan interface{})
 
@@ -100,7 +98,7 @@ func (e *Service) AddWatcher(key string, handler EtcdHandlerFunc) error {
 		return err
 	}
 
-	go func(key string, watcher *clientv3.WatchChan, close *chan interface{}, f EtcdHandlerFunc) {
+	go func(key string, watcher *clientv3.WatchChan, close *chan interface{}, f func(key, value string, version int64)) {
 		for {
 			select {
 			case change := <-*watcher:
@@ -109,7 +107,7 @@ func (e *Service) AddWatcher(key string, handler EtcdHandlerFunc) error {
 						f(key, string(e.Kv.Value), e.Kv.Version)
 					}
 				}
-			case _ = <-*close:
+			case <-*close:
 				return
 			}
 		}

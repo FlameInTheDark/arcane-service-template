@@ -1,24 +1,29 @@
+// Controller example package.
 package controller
 
 import (
-	natsModel "github.com/FlameInTheDark/arcane-service-template/app/model/nats"
 	"github.com/FlameInTheDark/arcane-service-template/app/service"
+	"github.com/FlameInTheDark/arcane-service-template/model"
 	"github.com/nats-io/nats.go"
 	"go.uber.org/zap"
 )
 
 type Worker struct {
-	service *service.Service
+	service *service.Services
 }
 
-func New(service *service.Service) *Worker {
-	return &Worker{service: service}
+// Create new controller
+func New() *Worker {
+	return &Worker{}
 }
 
-func (w *Worker) Init() {
+// Initiate controller with application service
+func (w *Worker) Init(service *service.Services) {
+	w.service = service
 	w.registerCommand()
 }
 
+// Register workers and commands
 func (w *Worker) RegisterWorkers() {
 	w.pingWorker()
 	w.commandPingWorker()
@@ -27,8 +32,8 @@ func (w *Worker) RegisterWorkers() {
 }
 
 func (w *Worker) pingWorker() {
-	_ = w.service.Nats.Subscribe(natsPing, func(c *natsModel.Command) {
-		_ = w.service.Nats.Publish(natsPingResponse, natsModel.RegisterCommand{Name: command, Worker: natsWorker})
+	_ = w.service.Nats.Subscribe(natsPing, func(c *model.Command) {
+		_ = w.service.Nats.Publish(natsPingResponse, model.RegisterCommand{Name: command, Worker: natsWorker})
 	})
 }
 
@@ -43,7 +48,7 @@ func (w *Worker) commandPingWorker() {
 }
 
 func (w *Worker) registerCommand() {
-	cmd := natsModel.RegisterCommand{
+	cmd := model.RegisterCommand{
 		Name:   command,
 		Worker: natsWorker,
 	}

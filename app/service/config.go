@@ -2,7 +2,7 @@ package service
 
 import (
 	"encoding/json"
-	"github.com/FlameInTheDark/arcane-service-template/app/service/log"
+	"github.com/FlameInTheDark/arcane-service-template/app/service/logging"
 
 	"github.com/FlameInTheDark/arcane-service-template/app/service/config"
 	"github.com/FlameInTheDark/arcane-service-template/app/service/database"
@@ -15,7 +15,7 @@ var (
 	zapActionConfigUpdate = zap.String("action", "config-update")
 )
 
-func (s *Service) registerConfigWatchers() error {
+func (s *Services) registerConfigWatchers() error {
 	err := s.Etcd.AddWatcher(config.EtcdNats, func(key, value string, version int64) {
 		s.Config.Lock()
 		err := json.Unmarshal([]byte(value), &s.Config.Nats)
@@ -64,7 +64,7 @@ func (s *Service) registerConfigWatchers() error {
 		endpoints := s.Config.Database.GenerateConnString()
 		databaseService, err := database.New(endpoints, s.Config.Environment.Database)
 		if err != nil {
-			s.Logger = log.MakeLogger()
+			s.Logger = logging.MakeLogger()
 			s.Logger.Error(
 				err.Error(),
 				zapModule,

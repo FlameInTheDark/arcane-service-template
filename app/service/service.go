@@ -2,75 +2,89 @@ package service
 
 import (
 	"fmt"
+
 	"github.com/FlameInTheDark/arcane-service-template/app/service/config"
+	"github.com/FlameInTheDark/arcane-service-template/app/service/core/interfaces"
 	"github.com/FlameInTheDark/arcane-service-template/app/service/database"
 	"github.com/FlameInTheDark/arcane-service-template/app/service/discord"
 	"github.com/FlameInTheDark/arcane-service-template/app/service/etcd"
-	"github.com/FlameInTheDark/arcane-service-template/app/service/log"
+	"github.com/FlameInTheDark/arcane-service-template/app/service/logging"
 	"github.com/FlameInTheDark/arcane-service-template/app/service/metrics"
 	"github.com/FlameInTheDark/arcane-service-template/app/service/nats"
 	"go.uber.org/zap"
 )
 
 const (
-	appName       = "arcane-service"
 	moduleName    = "service"
 	logCollection = "log"
 )
 
 var (
 	zapModule      = zap.String("module", moduleName)
-	zapApplication = zap.String("app", appName)
+	zapApplication zap.Field
 )
 
-type Service struct {
+type Services struct {
 	Logger   *zap.Logger
-	Etcd     *etcd.Service
-	Database *database.Service
-	Discord  *discord.Service
-	Nats     *nats.Service
-	Metrics  *metrics.Service
+	Etcd     interfaces.EtcdService
+	Database interfaces.DatabaseService
+	Discord  interfaces.DiscordService
+	Nats     interfaces.NatsService
+	Metrics  interfaces.MetricsService
 	Config   *config.Service
 }
 
-func New(endpoints []string, username, password string) (*Service, error) {
-	logger := log.MakeLogger()
+func New(endpoints []string, username, password, appName string) (*Services, error) {
+	logger := logging.MakeLogger()
+	zapApplication = zap.String("app", appName)
 
-	var service Service
-	service.Logger = logger
+	var services Services
+	services.Logger = logger
 	etcdService, err := etcd.New(endpoints, username, password)
 	if err != nil {
 		logger.Error(err.Error(), zapModule)
 		return nil, fmt.Errorf("error creating etcd session: %s", err)
 	}
 	etcdService.SetLogger(logger)
-	service.Etcd = etcdService
-	service.Config = &config.Service{}
+	services.Etcd = etcdService
+	services.Config = &config.Service{}
 
-	err = service.loadConfig()
+	err = services.loadConfig()
 	if err != nil {
 		return nil, err
 	}
 
-	err = service.init()
+	err = services.init()
 	if err != nil {
 		return nil, err
 	}
 
-	err = service.registerConfigWatchers()
+	err = services.registerConfigWatchers()
 	if err != nil {
-		service.Logger.Error(err.Error(), zapModule)
+		services.Logger.Error(err.Error(), zapModule)
 		return nil, err
 	}
-	service.Metrics.Startup(appName)
-	service.Logger.Info("Application started", zap.String("action", "launch"))
-	return &service, nil
+	services.Metrics.Startup(appName)
+	services.Logger.Info("Application started", zap.String("action", "launch"))
+	return &services, nil
 }
 
-func (s *Service) loadConfig() error {
+func (s *Services) loadConfig() error {
 	err := s.Etcd.GetOneJSON(config.EtcdEnvironment, &s.Config.Environment)
+	if err != nil {
+		return fmt.Errorf("error load config: %s", err)
+	}
+
 	err = s.Etcd.GetOneJSON(config.EtcdDatabase, &s.Config.Database)
+	if err != nil {
+		return fmt.Errorf("error load config: %s", err)
+	}
+
 	err = s.Etcd.GetOneJSON(config.EtcdNats, &s.Config.Nats)
+	if err != nil {
+		return fmt.Errorf("error load config: %s", err)
+	}
+
 	err = s.Etcd.GetOneJSON(config.EtcdMetrics, &s.Config.Metrics)
 	if err != nil {
 		return fmt.Errorf("error load config: %s", err)
@@ -78,7 +92,7 @@ func (s *Service) loadConfig() error {
 	return nil
 }
 
-func (s *Service) init() error {
+func (s *Services) init() error {
 	databaseService, err := database.New(s.Config.Database.GenerateConnString(), s.Config.Environment.Database)
 	if err != nil {
 		s.Logger.Error(err.Error(), zapModule)
@@ -86,7 +100,8 @@ func (s *Service) init() error {
 	}
 	metricsService := metrics.New(s.Config.Metrics.Endpoint, s.Config.Metrics.Token, s.Config.Metrics.Org, s.Config.Metrics.Bucket)
 
-	logger := log.MakeLoggerWriter(databaseService.MakeWriter(logCollection), metricsService.MakeWriter())
+	logger := logging.MakeLoggerWriter(databaseService.MakeWriter(logCollection), metricsService.MakeWriter())
+	_ = s.Logger.Sync()
 	s.Logger = logger.With(zapApplication)
 
 	s.Etcd.SetLogger(logger)
@@ -111,12 +126,12 @@ func (s *Service) init() error {
 	return nil
 }
 
-func (s *Service) Close() {
+func (s *Services) Close() {
 	s.Logger.Info("Shutting down the application", zap.String("action", "shutdown"))
+	defer func() { _ = s.Logger.Sync() }()
 	s.Etcd.Close()
 	s.Nats.Close()
 	s.Discord.Close()
 	s.Database.Close()
 	s.Metrics.Close()
-	s.Logger.Sync()
 }

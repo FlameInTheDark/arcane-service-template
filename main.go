@@ -8,7 +8,11 @@ import (
 	"syscall"
 
 	"github.com/FlameInTheDark/arcane-service-template/app"
+	"github.com/FlameInTheDark/arcane-service-template/controller"
 )
+
+// Uses when logging
+const appName = "arcane-service"
 
 var (
 	etcdEndpoints = os.Getenv("ETCD_ENDPOINTS")
@@ -21,19 +25,18 @@ func main() {
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	application, err := app.New(etcdEndpoints, etcdUsername, etcdPassword)
+	application, err := app.New(etcdEndpoints, etcdUsername, etcdPassword, appName)
 	if err != nil {
 		return
 	}
 
-	application.Controller.Init()
-	application.Controller.RegisterWorkers()
+	application.Start(controller.New())
 
 	lock := make(chan os.Signal, 1)
 	signal.Notify(lock, os.Interrupt)
 	signal.Notify(lock, syscall.SIGTERM)
 	<-lock
-	application.Service.Close()
+	application.Close()
 }
 
 func checkEnvironment() error {

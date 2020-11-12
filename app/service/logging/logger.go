@@ -1,4 +1,4 @@
-package log
+package logging
 
 import (
 	"io"
@@ -23,7 +23,7 @@ func MakeLogger() *zap.Logger {
 		EncodeCaller: zapcore.ShortCallerEncoder,
 	}
 
-	logger := zap.New(zapcore.NewCore(zapcore.NewJSONEncoder(cfg), zapcore.NewMultiWriteSyncer(zapcore.AddSync(os.Stderr)), zapcore.DebugLevel))
+	logger := zap.New(zapcore.NewCore(zapcore.NewConsoleEncoder(cfg), zapcore.NewMultiWriteSyncer(zapcore.Lock(os.Stderr)), zapcore.DebugLevel))
 	return logger
 }
 
@@ -42,6 +42,16 @@ func MakeLoggerWriter(db, metrics io.Writer) *zap.Logger {
 		EncodeCaller: zapcore.ShortCallerEncoder,
 	}
 
-	logger := zap.New(zapcore.NewCore(zapcore.NewJSONEncoder(cfg), zapcore.NewMultiWriteSyncer(zapcore.AddSync(os.Stderr), zapcore.AddSync(db), zapcore.AddSync(metrics)), zapcore.DebugLevel))
+	databaseDebug := zapcore.AddSync(db)
+	metricsDebug := zapcore.AddSync(metrics)
+	consoleDebug := zapcore.Lock(os.Stderr)
+
+	core := zapcore.NewTee(
+		zapcore.NewCore(zapcore.NewJSONEncoder(cfg), databaseDebug, zapcore.DebugLevel),
+		zapcore.NewCore(zapcore.NewJSONEncoder(cfg), metricsDebug, zapcore.DebugLevel),
+		zapcore.NewCore(zapcore.NewConsoleEncoder(cfg), consoleDebug, zapcore.DebugLevel),
+	)
+
+	logger := zap.New(core)
 	return logger
 }

@@ -1,6 +1,7 @@
 package discord
 
 import (
+	"github.com/FlameInTheDark/arcane-service-template/app/service/discord/embed"
 	"github.com/bwmarrin/discordgo"
 	"go.uber.org/zap"
 )
@@ -33,6 +34,6 @@ func (s *Service) SendComplex(channel string, msg *discordgo.MessageSend) error 
 func (s *Service) SendSimpleEmbed(channel, title, content string) error {
 	s.RLock()
 	defer s.RUnlock()
-	msg := NewEmbed("").Field(title, content, false).Color(0x00ff00).GetMessageSend()
+	msg := embed.NewEmbed("").Field(title, content, false).Color(0x00ff00).GetMessageSend()
 	return s.SendComplex(channel, msg)
 }

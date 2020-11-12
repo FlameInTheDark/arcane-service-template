@@ -1,9 +1,10 @@
 package metrics
 
 import (
+	"sync"
+
 	influxdb2 "github.com/influxdata/influxdb-client-go"
 	"github.com/influxdata/influxdb-client-go/api"
-	"sync"
 )
 
 type Service struct {
@@ -27,7 +28,7 @@ func (s *Service) Close() {
 
 func (s *Service) Reload(endpoint, token, org, bucket string) {
 	s.Lock()
-	s.Unlock()
+	defer s.Unlock()
 	client := influxdb2.NewClient(endpoint, token)
 	writeApi := client.WriteAPI(org, bucket)
 	s.client = client

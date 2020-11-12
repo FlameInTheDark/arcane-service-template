@@ -1,8 +1,9 @@
 package metrics
 
 import (
-	influxdb2 "github.com/influxdata/influxdb-client-go"
 	"time"
+
+	influxdb2 "github.com/influxdata/influxdb-client-go"
 )
 
 func (s *Service) NatsMessage(subject string) {
@@ -22,6 +23,16 @@ func (s *Service) Startup(app string) {
 func (s *Service) Command(id, guild string) {
 	s.RLock()
 	defer s.RUnlock()
-	p := influxdb2.NewPointWithMeasurement("command").AddField("id", id).AddField("guild", guild).SetTime(time.Now())
+	p := influxdb2.NewPointWithMeasurement("command").AddField(id, 1).AddTag("guild", guild).SetTime(time.Now())
 	s.write.WritePoint(p)
+	s.CommandTotal(id)
+}
+
+func (s *Service) CommandTotal(id string) {
+	s.RLock()
+	defer s.RUnlock()
+	totalOne := influxdb2.NewPointWithMeasurement("command").AddField(id, 1).AddTag("guild", "total").SetTime(time.Now())
+	s.write.WritePoint(totalOne)
+	totalAll := influxdb2.NewPointWithMeasurement("command").AddField("total", 1).AddTag("guild", "total").SetTime(time.Now())
+	s.write.WritePoint(totalAll)
 }

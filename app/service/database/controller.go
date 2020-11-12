@@ -1,10 +1,11 @@
 package database
 
 import (
-	model "github.com/FlameInTheDark/arcane-service-template/app/model/database"
+	"time"
+
+	"github.com/FlameInTheDark/arcane-service-template/app/service/core/model"
 	"github.com/globalsign/mgo/bson"
 	"go.uber.org/zap"
-	"time"
 )
 
 func (s *Service) GetCommand(command, guild string, result interface{}) error {

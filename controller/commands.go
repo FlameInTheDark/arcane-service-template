@@ -3,13 +3,13 @@ package controller
 import (
 	"fmt"
 
-	model "github.com/FlameInTheDark/arcane-service-template/app/model/database"
-	natsModel "github.com/FlameInTheDark/arcane-service-template/app/model/nats"
-	"github.com/FlameInTheDark/arcane-service-template/app/service/discord"
+	"github.com/FlameInTheDark/arcane-service-template/app/service/core/model"
+	"github.com/FlameInTheDark/arcane-service-template/app/service/discord/embed"
+	cModel "github.com/FlameInTheDark/arcane-service-template/model"
 )
 
 func (w *Worker) helpCommand() {
-	_ = w.service.Nats.SubscribeQueue(natsWorker, "workers", func(c *natsModel.Command) {
+	_ = w.service.Nats.SubscribeQueue(natsWorker, "workers", func(c *cModel.Command) {
 		var cmd model.GuildCommand
 		var accepted bool
 		err := w.service.Database.GetCommand(command, c.GuildID, &cmd)
@@ -19,7 +19,7 @@ func (w *Worker) helpCommand() {
 			accepted = cmd.Active
 		}
 		if accepted {
-			msg := discord.NewEmbed("").
+			msg := embed.NewEmbed("").
 				Field("Help", "Help message!", false).
 				Footer(fmt.Sprintf("Requested by %s", c.Username)).
 				Color(0x00ff00).

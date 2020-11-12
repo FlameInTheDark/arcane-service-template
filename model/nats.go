@@ -1,4 +1,4 @@
-package nats
+package model
 
 type Command struct {
 	UserID    string `json:"userid"`

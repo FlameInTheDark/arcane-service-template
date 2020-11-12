@@ -11,7 +11,6 @@ const (
 	EtcdNats        = "/conf/nats/endpoints"
 	EtcdEnvironment = "/services/arcane/config/environment"
 	EtcdMetrics     = "/services/arcane/config/metrics"
-	EtcdDiscord     = "/service/arcane/config/discord"
 )
 
 type Service struct {

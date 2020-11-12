@@ -3,10 +3,11 @@ package database
 import (
 	"encoding/json"
 	"errors"
-	"github.com/globalsign/mgo"
-	"go.uber.org/zap"
 	"io"
 	"sync"
+
+	"github.com/globalsign/mgo"
+	"go.uber.org/zap"
 )
 
 const (

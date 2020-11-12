@@ -1,9 +1,10 @@
 package nats
 
 import (
+	"sync"
+
 	"github.com/nats-io/nats.go"
 	"go.uber.org/zap"
-	"sync"
 )
 
 var (
