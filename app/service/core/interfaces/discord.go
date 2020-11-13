@@ -14,4 +14,6 @@ type DiscordService interface {
 	SendMessage(channel, content string) error
 	SendComplex(channel string, msg *discordgo.MessageSend) error
 	SendSimpleEmbed(channel, title, content string) error
+	SendErrorEmbed(channel, title, field, content, username string) error
+	SendWarningEmbed(channel, title, field, content, username string) error
 }

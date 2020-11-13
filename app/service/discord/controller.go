@@ -40,7 +40,7 @@ func (s *Service) SendSimpleEmbed(channel, title, content string) error {
 }
 
 // Send simple embedded error message with title, field title, content and username in footer
-func (s *Service) SendErrorMessage(channel, title, field, content, username string) error {
+func (s *Service) SendErrorEmbed(channel, title, field, content, username string) error {
 	s.RLock()
 	defer s.RUnlock()
 	msg := embed.NewEmbed(title).Field(field, content, false).Color(0xff0000).Footer(fmt.Sprintf("Requested by %s", username)).GetMessageSend()
@@ -48,7 +48,7 @@ func (s *Service) SendErrorMessage(channel, title, field, content, username stri
 }
 
 // Send simple embedded error message with title, field title, content and username in footer
-func (s *Service) SendWarningMessage(channel, title, field, content, username string) error {
+func (s *Service) SendWarningEmbed(channel, title, field, content, username string) error {
 	s.RLock()
 	defer s.RUnlock()
 	msg := embed.NewEmbed(title).Field(field, content, false).Color(0xffff00).Footer(fmt.Sprintf("Requested by %s", username)).GetMessageSend()
